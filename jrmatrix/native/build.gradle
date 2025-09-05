@@ -1,61 +1,71 @@
 apply plugin: 'c'
 
-tasks.register('compileJni', Exec) {
-    dependsOn project(":app").tasks.named("compileJava")
-    def jniHeaders = project(":app").layout.buildDirectory.dir("generated/jni").get().asFile
-    def jvmHome = file(System.getenv("JAVA_HOME"))
-    def outputDir = file("$buildDir/libs/shared")
-    outputs.dir outputDir
-    doFirst { outputDir.mkdirs() }
+def jniHeaders = { project(":app").layout.buildDirectory.dir("generated/jni").get().asFile }
+def jvmHome = { file(System.getenv("JAVA_HOME")) }
+def outputDir = { file("$buildDir/libs/shared") }
 
+def osSettings = {
     def os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem
-    def includeOS
-    if (os.isLinux()) includeOS = new File(jvmHome, "include/linux")
-    else if (os.isMacOsX()) includeOS = new File(jvmHome, "include/darwin")
-    else if (os.isWindows()) includeOS = new File(jvmHome, "include/win32")
-    else throw new GradleException("Unsupported OS: $os")
-
-    commandLine 'gcc',
-        '-c',
-        '-fPIC',
-        '-I', jniHeaders.absolutePath,
-        '-I', new File(jvmHome, 'include').absolutePath,
-        '-I', includeOS.absolutePath,
-        'src/main/c/org_jtodd_jni_RMatrixJNI.c',
-        '-o', new File(outputDir, 'org_jtodd_jni_RMatrixJNI.o').absolutePath
-}
-
-tasks.register('linkJni', Exec) {
-    dependsOn tasks.named("compileJni")
-    def jniHeaders = project(":app").layout.buildDirectory.dir("generated/jni").get().asFile
-    def jvmHome = file(System.getenv("JAVA_HOME"))
-    def outputDir = file("$buildDir/libs/shared")
-    outputs.dir outputDir
-    doFirst { outputDir.mkdirs() }
-
-    def os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem
+    def baseInclude = new File(jvmHome(), "/include")
     def includeOS
     def libName
     if (os.isLinux()) {
-        includeOS = new File(jvmHome, "/include/linux")
+        includeOS = new File(jvmHome(), "/include/linux")
         libName = "libjnirmatrix.so"
     } else if (os.isMacOsX()) {
-        includeOS = new File(jvmHome, "/include/darwin")
+        includeOS = new File(jvmHome(), "/include/darwin")
         libName = "libjnirmatrix.dylib"
     } else if (os.isWindows()) {
-        includeOS = new File(jvmHome, "/include/win32")
+        includeOS = new File(jvmHome(), "/include/win32")
         libName = "jnirmatrix.dll"
     } else {
         throw new GradleException("Unsupported OS: $os")
     }
+    [baseInclude, includeOS, libName]
+}
+
+def sourceDir = file("src/main/c")
+def cSources = fileTree(dir: sourceDir, include: "**/*.c")
+def objectFiles = cSources.files.collect { file ->
+    new File(outputDir(), file.name.replaceAll(/\.c$/, ".o")).absolutePath
+}
+
+tasks.register('compileJni', Exec) {
+    dependsOn project(":app").tasks.named("compileJava")
+    outputs.dir outputDir()
+    doFirst { outputDir().mkdirs() }
+
+    def (baseInclude, includeOS, _) = osSettings()
+
+    def compileArgs = cSources.files.collect { file ->
+        [
+            '-c',
+            '-fPIC',
+            '-I', jniHeaders().absolutePath,
+            '-I', baseInclude.absolutePath,
+            '-I', includeOS.absolutePath,
+            file.absolutePath,
+            '-o', new File(outputDir(), file.name.replaceAll(/\.c$/, ".o")).absolutePath
+        ]
+    }.flatten()
+
+    commandLine 'gcc', *compileArgs
+}
+
+tasks.register('linkJni', Exec) {
+    dependsOn tasks.named("compileJni")
+    outputs.dir outputDir()
+    doFirst { outputDir().mkdirs() }
+
+    def (baseInclude, includeOS, libName) = osSettings()
 
     commandLine 'gcc',
         '-shared',
         '-fPIC',
-        '-o', new File(outputDir, libName).absolutePath,
-        'src/main/c/org_jtodd_jni_RMatrixJNI.c',
-        '-I', jniHeaders.absolutePath,
-        '-I', new File(jvmHome, 'include').absolutePath,
+        '-o', new File(outputDir(), libName).absolutePath,
+        *objectFiles,
+        '-I', jniHeaders().absolutePath,
+        '-I', baseInclude.absolutePath,
         '-I', includeOS.absolutePath,
         '-L', '/usr/local/lib',
         '-l', 'rashunal',
