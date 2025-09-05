@@ -3,14 +3,6 @@ plugins {
     id 'java'
 }
 
-def jniJavaVersion = JavaLanguageVersion.of(11)
-
-java {
-    toolchain {
-        languageVersion = jniJavaVersion
-    }
-}
-
 tasks.named("compileJava") {
     def headerDir = file("${buildDir}/generated/jni")
     options.compilerArgs += ["-h", headerDir.absolutePath]
