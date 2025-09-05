@@ -12,7 +12,9 @@ java {
 }
 
 tasks.named("compileJava") {
-    options.compilerArgs += ["-h", file("${buildDir}/generated/jni").absolutePath]
+    def headerDir = file("${buildDir}/generated/jni")
+    options.compilerArgs += ["-h", headerDir.absolutePath]
+    outputs.dir(headerDir)
 }
 
 application {
