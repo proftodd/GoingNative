@@ -7,3 +7,5 @@
  */
 
 rootProject.name = 'jrmatrix'
+
+include('app', 'native')

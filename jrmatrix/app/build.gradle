@@ -1,0 +1,36 @@
+plugins {
+    id 'application'
+    id 'java'
+}
+
+def jniJavaVersion = JavaLanguageVersion.of(11)
+
+java {
+    toolchain {
+        languageVersion = jniJavaVersion
+    }
+}
+
+tasks.named("compileJava") {
+    options.compilerArgs += ["-h", file("${buildDir}/generated/jni").absolutePath]
+}
+
+application {
+    mainClass = 'org.jtodd.jni.jrmatrix.App'
+    applicationDefaultJvmArgs = [
+        "-Djava.library.path=" + project(":native").layout.buildDirectory.dir("libs/shared").get().asFile.absolutePath
+    ]
+}
+
+tasks.named("run") {
+    dependsOn project(":native").tasks.named("linkJni")
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.guava:guava:32.1.1-jre'
+    testImplementation 'junit:junit:4.13.2'
+}

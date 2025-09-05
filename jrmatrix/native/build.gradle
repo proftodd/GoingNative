@@ -1,0 +1,68 @@
+apply plugin: 'c'
+
+tasks.register('compileJni', Exec) {
+    dependsOn project(":app").tasks.named("compileJava")
+    def jniHeaders = project(":app").layout.buildDirectory.dir("generated/jni").get().asFile
+    def jvmHome = file(System.getenv("JAVA_HOME"))
+    def outputDir = file("$buildDir/libs/shared")
+    outputs.dir outputDir
+    doFirst { outputDir.mkdirs() }
+
+    def os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem
+    def includeOS
+    if (os.isLinux()) includeOS = new File(jvmHome, "include/linux")
+    else if (os.isMacOsX()) includeOS = new File(jvmHome, "include/darwin")
+    else if (os.isWindows()) includeOS = new File(jvmHome, "include/win32")
+    else throw new GradleException("Unsupported OS: $os")
+
+    commandLine 'gcc',
+        '-c',
+        '-fPIC',
+        '-I', jniHeaders.absolutePath,
+        '-I', new File(jvmHome, 'include').absolutePath,
+        '-I', includeOS.absolutePath,
+        'src/main/c/org_jtodd_jni_RMatrixJNI.c',
+        '-o', new File(outputDir, 'org_jtodd_jni_RMatrixJNI.o').absolutePath
+}
+
+tasks.register('linkJni', Exec) {
+    dependsOn tasks.named("compileJni")
+    def jniHeaders = project(":app").layout.buildDirectory.dir("generated/jni").get().asFile
+    def jvmHome = file(System.getenv("JAVA_HOME"))
+    def outputDir = file("$buildDir/libs/shared")
+    outputs.dir outputDir
+    doFirst { outputDir.mkdirs() }
+
+    def os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem
+    def includeOS
+    def libName
+    if (os.isLinux()) {
+        includeOS = new File(jvmHome, "/include/linux")
+        libName = "libjnirmatrix.so"
+    } else if (os.isMacOsX()) {
+        includeOS = new File(jvmHome, "/include/darwin")
+        libName = "libjnirmatrix.dylib"
+    } else if (os.isWindows()) {
+        includeOS = new File(jvmHome, "/include/win32")
+        libName = "jnirmatrix.dll"
+    } else {
+        throw new GradleException("Unsupported OS: $os")
+    }
+
+    commandLine 'gcc',
+        '-shared',
+        '-fPIC',
+        '-o', new File(outputDir, libName).absolutePath,
+        'src/main/c/org_jtodd_jni_RMatrixJNI.c',
+        '-I', jniHeaders.absolutePath,
+        '-I', new File(jvmHome, 'include').absolutePath,
+        '-I', includeOS.absolutePath,
+        '-L', '/usr/local/lib',
+        '-l', 'rashunal',
+        '-l', 'rmatrix'
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('compileJni')
+    dependsOn tasks.named('linkJni')
+}
