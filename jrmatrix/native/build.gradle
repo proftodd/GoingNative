@@ -69,7 +69,8 @@ tasks.register('linkJni', Exec) {
         '-I', includeOS.absolutePath,
         '-L', '/usr/local/lib',
         '-l', 'rashunal',
-        '-l', 'rmatrix'
+        '-l', 'rmatrix',
+        '-Wl,-rpath,/usr/local/lib'
 }
 
 tasks.named('build') {
