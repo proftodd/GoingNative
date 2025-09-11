@@ -26,7 +26,7 @@ library {
             compileTask.includes.from("$jvmHome/include/win32")
             compileTask.includes.from(file("C:/headers/rashunal/include"))
             compileTask.includes.from(file("C:/headers/rmatrix/include"))
-            compileTask.compileArgs.add("/TC")
+            compileTask.compilerArgs.add("/TC")
         } else if (os.isLinux()) {
             compileTask.includes.from(file("$jvmHome/include/linux"))
             compileTask.compilerArgs.addAll(["-x", "c", "-fPIC", "-std=c11"])
