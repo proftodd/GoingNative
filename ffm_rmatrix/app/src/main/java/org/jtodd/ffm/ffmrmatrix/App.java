@@ -3,12 +3,134 @@
  */
 package org.jtodd.ffm.ffmrmatrix;
 
-public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
+import java.lang.foreign.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
+import static java.lang.foreign.ValueLayout.*;
+
+import jdk.jfr.MemoryAddress;
+import org.jtodd.ffm.RMatrixFFM;
+
+public class App {
     public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+        int data[][][];
+        int demoData[][][] = {
+            { { 1    }, { 2 }, { 3, 2 }, },
+            { { 4, 3 }, { 5 }, { 6    }, },
+        };
+        try {
+            if (args.length > 0) {
+                List<String> lines = Files.readAllLines(Paths.get(args[0]));
+                ArrayList<int[][]> fileData = new ArrayList<int[][]>();
+                for (int i = 0; i < lines.size(); ++i) {
+                    String line = lines.get(i);
+                    String[] elements = line.split("(?<!^)[ ]+");
+                    int[][] lineData = new int[elements.length][];
+                    for (int j = 0; j < lineData.length; ++j) {
+                        String[] elementParts = elements[j].split("/");
+                        int[] fractionParts;
+                        if (elementParts.length == 1) {
+                            fractionParts = new int[] { Integer.parseInt(elementParts[0].trim()) };
+                        } else {
+                            fractionParts = new int[] {
+                                    Integer.parseInt(elementParts[0].trim()),
+                                    Integer.parseInt(elementParts[1].trim()),
+                            };
+                        }
+                        lineData[j] = fractionParts;
+                    }
+                    fileData.add(lineData);
+                }
+                data = new int[fileData.size()][][];
+                for (int i = 0; i < data.length; ++i) {
+                    data[i] = fileData.get(i);
+                }
+            } else {
+                data = demoData;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            data = demoData;
+        }
+
+        Linker linker = Linker.nativeLinker();
+
+        try (Arena arena = Arena.ofConfined()) {
+            var lookup = RMatrixFFM.openNativeLib(arena);
+
+            Function<String, MemorySegment> find = (name) -> {
+                Optional<MemorySegment> sym = lookup.find(name);
+                if (sym.isEmpty()) throw new IllegalStateException("Native symbol not found: " + name);
+                return sym.get();
+            };
+
+            var new_RMatrix_handle = linker.downcallHandle(find.apply("new_RMatrix"),
+                    FunctionDescriptor.of(ADDRESS, JAVA_LONG, JAVA_LONG, ADDRESS));
+
+            var RMatrix_height_handle = linker.downcallHandle(find.apply("RMatrix_height"),
+                    FunctionDescriptor.of(JAVA_LONG, ADDRESS));
+
+            var RMatrix_width_handle = linker.downcallHandle(find.apply("RMatrix_width"),
+                    FunctionDescriptor.of(JAVA_LONG, ADDRESS));
+
+            var RMatrix_gelim_handle = linker.downcallHandle(find.apply("RMatrix_gelim"),
+                    FunctionDescriptor.of(ADDRESS, ADDRESS));
+
+            int height = data.length;
+            int width = data[0].length;
+            int elementCount = height * width;
+
+            MemoryLayout rashunalLayout = RMatrixFFM.RASHUNAL_LAYOUT;
+            long elementSize = rashunalLayout.byteSize();
+            long elementAlign = rashunalLayout.byteAlignment();
+            long totalBytes = elementSize * (long)elementCount;
+            MemorySegment elems = arena.allocate(totalBytes, elementAlign);
+            long numOffset = rashunalLayout.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
+            long denOffset = rashunalLayout.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
+            for (int i = 0; i < elementCount; ++i) {
+                int row = i / width;
+                int col = i % width;
+                int[] element = data[row][col];
+                int numerator = element[0];
+                int denominator = element.length == 1 ? 1 : element[1];
+
+                long base = i * elementSize;
+                MemorySegment elementSlice = elems.asSlice(base, elementSize);
+
+                elementSlice.set(JAVA_INT, numOffset, numerator);
+                elementSlice.set(JAVA_INT, denOffset, denominator);
+            }
+
+            long ptrSize = ADDRESS.byteSize();
+            long ptrAlign = ADDRESS.byteAlignment();
+            long ptrBytes = ptrSize * (long)elementCount;
+            MemorySegment ptrArray = arena.allocate(ptrBytes, ptrAlign);
+            for (int i = 0; i < elementCount; ++i) {
+                long base = i * elementSize;
+                MemorySegment elementAddr = elems.asSlice(base, elementSize);
+                long byteOffset = i * ptrSize;
+                ptrArray.set(ADDRESS, byteOffset, elementAddr);
+            }
+
+            MemorySegment rmatrixPtr = (MemorySegment) new_RMatrix_handle.invoke((long)height, (long)width, ptrArray);
+
+            MemorySegment factorAddr = (MemorySegment) RMatrix_gelim_handle.invoke(rmatrixPtr);
+            MemorySegment factorization = MemorySegment.ofAddress(factorAddr.address());
+
+            long uOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("U"));
+            MemorySegment uPtr = factorization.get(ADDRESS, uOffset);
+
+            long uHeight = (long)RMatrix_height_handle.invoke(uPtr);
+            long uWidth = (long)RMatrix_width_handle.invoke(uPtr);
+
+            System.out.println("U matrix: " + uHeight + "x" + uWidth);
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
     }
 }
