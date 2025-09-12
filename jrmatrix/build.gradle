@@ -5,3 +5,20 @@
  * To learn more about Gradle by exploring our Samples at https://docs.gradle.org/8.3/samples
  * This project uses @Incubating APIs which are subject to change.
  */
+ext {
+    // Normalize OS name into what Gradle's native plugin actually uses
+    normalizedOsName = {
+        def os = org.gradle.internal.os.OperatingSystem.current()
+        if (os.isWindows()) {
+            return "windows"
+        } else if (os.isLinux()) {
+            return "linux"
+        } else if (os.isMacOsX()) {
+            return "macos"
+        } else if (os.isUnix()) {
+            return "unix"
+        } else {
+            throw new GradleException("Unsupported OS: $os")
+        }
+    }
+}
