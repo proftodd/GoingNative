@@ -3,8 +3,6 @@ plugins {
     id 'java'
 }
 
-def os = org.gradle.internal.os.OperatingSystem.current()
-
 def osName = rootProject.ext.normalizedOsName()
 def buildType = (project.findProperty("nativeBuildType") ?: "debug")
 
