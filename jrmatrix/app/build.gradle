@@ -3,21 +3,21 @@ plugins {
     id 'java'
 }
 
-tasks.named("compileJava") {
-    def headerDir = file("${buildDir}/generated/jni")
-    options.compilerArgs += ["-h", headerDir.absolutePath]
-    outputs.dir(headerDir)
-}
+def osName = rootProject.ext.normalizedOsName()
+def buildType = (project.findProperty("nativeBuildType") ?: "debug")
 
 application {
     mainClass = 'org.jtodd.jni.jrmatrix.App'
+
     applicationDefaultJvmArgs = [
-        "-Djava.library.path=" + project(":native").layout.buildDirectory.dir("libs/shared").get().asFile.absolutePath
+        "-Djava.library.path=${project(":native").layout.buildDirectory.dir("lib/main/${buildType}/${osName}").get().asFile.absolutePath}"
     ]
 }
 
 tasks.named("run") {
-    dependsOn project(":native").tasks.named("linkJni")
+    def nativeLibs = project(":native").layout.buildDirectory.dir("lib")
+
+    dependsOn(":native:assemble")
 }
 
 repositories {

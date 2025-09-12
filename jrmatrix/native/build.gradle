@@ -1,79 +1,67 @@
-apply plugin: 'c'
+plugins {
+    id 'cpp-library'
+}
 
-def jniHeaders = { project(":app").layout.buildDirectory.dir("generated/jni").get().asFile }
-def jvmHome = { file(System.getenv("JAVA_HOME")) }
-def outputDir = { file("$buildDir/libs/shared") }
+library {
+    linkage.set([Linkage.SHARED])
+    targetMachines = [
+        machines.windows.x86_64,
+        machines.macOS.x86_64,
+        machines.linux.x86_64,
+    ]
+    baseName = "jnirmatrix"
 
-def osSettings = {
-    def os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem
-    def baseInclude = new File(jvmHome(), "/include")
-    def includeOS
-    def libName
-    if (os.isLinux()) {
-        includeOS = new File(jvmHome(), "/include/linux")
-        libName = "libjnirmatrix.so"
-    } else if (os.isMacOsX()) {
-        includeOS = new File(jvmHome(), "/include/darwin")
-        libName = "libjnirmatrix.dylib"
-    } else if (os.isWindows()) {
-        includeOS = new File(jvmHome(), "/include/win32")
-        libName = "jnirmatrix.dll"
-    } else {
-        throw new GradleException("Unsupported OS: $os")
+    binaries.configureEach {
+        def compileTask = compileTask.get()
+        compileTask.dependsOn(project(":app").tasks.named("compileJava"))
+
+        compileTask.source.from fileTree(dir: "src/main/c", include: "**/*c")
+
+        def jvmHome = System.getenv("JAVA_HOME")
+        compileTask.includes.from(file("$jvmHome/include"))
+        compileTask.includes.from(project(":app").layout.buildDirectory.dir("generated/sources/headers/java/main"))
+
+        def os = org.gradle.internal.os.OperatingSystem.current()
+        if (os.isWindows()) {
+            compileTask.includes.from("$jvmHome/include/win32")
+            compileTask.includes.from(file("C:/headers/rashunal/include"))
+            compileTask.includes.from(file("C:/headers/rmatrix/include"))
+            compileTask.compilerArgs.add("/TC")
+        } else if (os.isLinux()) {
+            compileTask.includes.from(file("$jvmHome/include/linux"))
+            compileTask.compilerArgs.addAll(["-x", "c", "-fPIC", "-std=c11"])
+        } else if (os.isMacOsX()) {
+            compileTask.includes.from(file("$jvmHome/include/darwin"))
+            compileTask.compilerArgs.addAll(["-x", "c", "-fPIC", "-std=c11"])
+        } else if (os.isUnix()) {
+            compileTask.includes.from(file("$jvmHome/include/freebsd"))
+            compileTask.compilerArgs.addAll(["-x", "c", "-fPIC", "-std=c11"])
+        } else {
+            throw new GradleException("Unsupported OS for JNI build: $os")
+        }
+
+        def linkTask = linkTask.get()
+        if (toolChain instanceof GccCompatibleToolChain) {
+            linkTask.linkerArgs.addAll([
+                "-L/usr/local/lib",
+                "-lrashunal",
+                "-lrmatrix",
+                "-Wl,-rpath,/usr/local/lib"
+            ])
+        } else if (toolChain instanceof VisualCpp) {
+            linkTask.linkerArgs.addAll([
+                "C:/libs/rashunal.lib",
+                "C:/libs/rmatrix.lib"
+            ])
+        }
     }
-    [baseInclude, includeOS, libName]
 }
 
-def sourceDir = file("src/main/c")
-def cSources = fileTree(dir: sourceDir, include: "**/*.c")
-def objectFiles = cSources.files.collect { file ->
-    new File(outputDir(), file.name.replaceAll(/\.c$/, ".o")).absolutePath
+def osName = rootProject.ext.normalizedOsName().capitalize()
+def buildType = (project.findProperty("nativeBuildType") ?: "debug").capitalize()
+def targetTaskName = "link${buildType}${osName}"
+
+tasks.named("assemble") {
+    dependsOn tasks.named(targetTaskName)
 }
 
-tasks.register('compileJni', Exec) {
-    dependsOn project(":app").tasks.named("compileJava")
-    outputs.dir outputDir()
-    doFirst { outputDir().mkdirs() }
-
-    def (baseInclude, includeOS, _) = osSettings()
-
-    def compileArgs = cSources.files.collect { file ->
-        [
-            '-c',
-            '-fPIC',
-            '-I', jniHeaders().absolutePath,
-            '-I', baseInclude.absolutePath,
-            '-I', includeOS.absolutePath,
-            file.absolutePath,
-            '-o', new File(outputDir(), file.name.replaceAll(/\.c$/, ".o")).absolutePath
-        ]
-    }.flatten()
-
-    commandLine 'gcc', *compileArgs
-}
-
-tasks.register('linkJni', Exec) {
-    dependsOn tasks.named("compileJni")
-    outputs.dir outputDir()
-    doFirst { outputDir().mkdirs() }
-
-    def (baseInclude, includeOS, libName) = osSettings()
-
-    commandLine 'gcc',
-        '-shared',
-        '-fPIC',
-        '-o', new File(outputDir(), libName).absolutePath,
-        *objectFiles,
-        '-I', jniHeaders().absolutePath,
-        '-I', baseInclude.absolutePath,
-        '-I', includeOS.absolutePath,
-        '-L', '/usr/local/lib',
-        '-l', 'rashunal',
-        '-l', 'rmatrix',
-        '-Wl,-rpath,/usr/local/lib'
-}
-
-tasks.named('build') {
-    dependsOn tasks.named('compileJni')
-    dependsOn tasks.named('linkJni')
-}
