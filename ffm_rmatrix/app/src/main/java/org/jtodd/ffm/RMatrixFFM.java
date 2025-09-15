@@ -21,11 +21,6 @@ public class RMatrixFFM {
     );
 
     public static SymbolLookup openNativeLib(Arena arena) {
-        SymbolLookup defaultLookup = Linker.nativeLinker().defaultLookup();
-        Path explicit = Path.of("/usr/local/lib/librmatrix.dylib");
-        if (explicit.toFile().exists()) {
-            return SymbolLookup.libraryLookup(explicit.toString(), arena);
-        }
-        return defaultLookup;
+        return SymbolLookup.libraryLookup("rmatrix", arena);
     }
 }

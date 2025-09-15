@@ -13,7 +13,6 @@ import java.util.function.Function;
 
 import static java.lang.foreign.ValueLayout.*;
 
-import jdk.jfr.MemoryAddress;
 import org.jtodd.ffm.RMatrixFFM;
 
 public class App {
@@ -99,34 +98,28 @@ public class App {
                 int numerator = element[0];
                 int denominator = element.length == 1 ? 1 : element[1];
 
-                long base = i * elementSize;
-                MemorySegment elementSlice = elems.asSlice(base, elementSize);
+                MemorySegment elementSlice = elems.asSlice(i * elementSize, elementSize);
 
                 elementSlice.set(JAVA_INT, numOffset, numerator);
                 elementSlice.set(JAVA_INT, denOffset, denominator);
             }
 
-            long ptrSize = ADDRESS.byteSize();
-            long ptrAlign = ADDRESS.byteAlignment();
-            long ptrBytes = ptrSize * (long)elementCount;
-            MemorySegment ptrArray = arena.allocate(ptrBytes, ptrAlign);
+            MemorySegment ptrArray = arena.allocate(ADDRESS.byteSize() * elementCount, ADDRESS.byteAlignment());
             for (int i = 0; i < elementCount; ++i) {
-                long base = i * elementSize;
-                MemorySegment elementAddr = elems.asSlice(base, elementSize);
-                long byteOffset = i * ptrSize;
-                ptrArray.set(ADDRESS, byteOffset, elementAddr);
+                MemorySegment elementAddr = elems.asSlice(i * elementSize, elementSize);
+                ptrArray.setAtIndex(ADDRESS, i, elementAddr);
             }
 
             MemorySegment rmatrixPtr = (MemorySegment) new_RMatrix_handle.invoke((long)height, (long)width, ptrArray);
 
-            MemorySegment factorAddr = (MemorySegment) RMatrix_gelim_handle.invoke(rmatrixPtr);
-            MemorySegment factorization = MemorySegment.ofAddress(factorAddr.address());
+            MemorySegment factorZero = (MemorySegment) RMatrix_gelim_handle.invoke(rmatrixPtr);
+            MemorySegment factor = factorZero.reinterpret(RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteSize(), arena,null);
 
             long uOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("U"));
-            MemorySegment uPtr = factorization.get(ADDRESS, uOffset);
+            MemorySegment uPtrZero = factor.get(ADDRESS, uOffset);
 
-            long uHeight = (long)RMatrix_height_handle.invoke(uPtr);
-            long uWidth = (long)RMatrix_width_handle.invoke(uPtr);
+            long uHeight = (long)RMatrix_height_handle.invoke(uPtrZero);
+            long uWidth = (long)RMatrix_width_handle.invoke(uPtrZero);
 
             System.out.println("U matrix: " + uHeight + "x" + uWidth);
         } catch (Throwable t) {
