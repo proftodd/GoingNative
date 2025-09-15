@@ -1,6 +1,7 @@
 package org.jtodd.ffm;
 
 import java.lang.foreign.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static java.lang.foreign.ValueLayout.*;
@@ -21,6 +22,15 @@ public class RMatrixFFM {
     );
 
     public static SymbolLookup openNativeLib(Arena arena) {
-        return SymbolLookup.libraryLookup("rmatrix", arena);
+        String libString = System.getenv("RMATRIX_LIB");
+        if (libString == null || libString.isBlank()) {
+            throw new IllegalStateException("Environment variable RMATRIX_LIB needed to load native libraries");
+        }
+        Path libPath = Path.of(libString);
+        if (!Files.isRegularFile(libPath)) {
+            throw new IllegalArgumentException("Library file not found: " + libPath);
+        }
+        System.out.println("Loading native library: " + libPath.toAbsolutePath());
+        return SymbolLookup.libraryLookup(libPath, arena);
     }
 }
