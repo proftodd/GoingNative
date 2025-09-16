@@ -1,6 +1,7 @@
 package org.jtodd.ffm;
 
 import java.lang.foreign.*;
+import java.lang.invoke.MethodHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -77,7 +78,7 @@ public class RMatrixFFM {
         return (MemorySegment) new_RMatrix_handle.invoke((long)height, (long)width, ptrArray);
     }
 
-    private static JRashunalMatrix allocateJRashunalMatrix(Arena arena, Linker linker, SymbolLookup lookup, MemorySegment mPtr) throws Throwable {
+    private static JRashunalMatrix allocateJRashunalMatrix(Arena arena, Linker linker, SymbolLookup lookup, MethodHandle freeHandle, MemorySegment mPtr) throws Throwable {
         long numeratorOffset = RMatrixFFM.RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
         long denominatorOffset = RMatrixFFM.RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
 
@@ -102,6 +103,7 @@ public class RMatrixFFM {
                 int numerator = element.get(JAVA_INT, numeratorOffset);
                 int denominator = element.get(JAVA_INT, denominatorOffset);
                 data[Math.toIntExact((i - 1) * width + (j - 1))] = new JRashunal(numerator, denominator);
+                freeHandle.invoke(element);
             }
         }
 
@@ -113,6 +115,7 @@ public class RMatrixFFM {
 
         try (Arena arena = Arena.ofConfined()) {
             var lookup = RMatrixFFM.openNativeLib(arena);
+            var clib = SymbolLookup.libraryLookup("libc.so.6", arena);
 
             var RMatrix_gelim_handle = linker.downcallHandle(find.apply(lookup, "RMatrix_gelim"),
                 FunctionDescriptor.of(ADDRESS, ADDRESS));
@@ -120,10 +123,12 @@ public class RMatrixFFM {
             var free_RMatrix_handle = linker.downcallHandle(find.apply(lookup, "free_RMatrix"),
                 FunctionDescriptor.ofVoid(ADDRESS));
 
+            MethodHandle freeHandle = linker.downcallHandle(clib.find("free").orElseThrow(), FunctionDescriptor.ofVoid(ADDRESS));
+
             MemorySegment rmatrixPtr = allocateNativeRMatrix(arena, linker, lookup, data);
 
             MemorySegment factorZero = (MemorySegment) RMatrix_gelim_handle.invoke(rmatrixPtr);
-            MemorySegment factor = factorZero.reinterpret(RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteSize(), arena,null);
+            MemorySegment factor = factorZero.reinterpret(RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteSize(), arena, null);
 
             long piOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("PI"));
             long lOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("L"));
@@ -135,10 +140,10 @@ public class RMatrixFFM {
             MemorySegment dPtr = factor.get(ADDRESS, dOffset);
             MemorySegment uPtr = factor.get(ADDRESS, uOffset);
 
-            JRashunalMatrix pInverse = allocateJRashunalMatrix(arena, linker, lookup, piPtr);
-            JRashunalMatrix lower = allocateJRashunalMatrix(arena, linker, lookup, lPtr);
-            JRashunalMatrix diagonal = allocateJRashunalMatrix(arena, linker, lookup, dPtr);
-            JRashunalMatrix upper = allocateJRashunalMatrix(arena, linker, lookup, uPtr);
+            JRashunalMatrix pInverse = allocateJRashunalMatrix(arena, linker, lookup, freeHandle, piPtr);
+            JRashunalMatrix lower = allocateJRashunalMatrix(arena, linker, lookup, freeHandle, lPtr);
+            JRashunalMatrix diagonal = allocateJRashunalMatrix(arena, linker, lookup, freeHandle, dPtr);
+            JRashunalMatrix upper = allocateJRashunalMatrix(arena, linker, lookup, freeHandle, uPtr);
             JGaussFactorization factorization = new JGaussFactorization(pInverse, lower, diagonal, upper);
 
             free_RMatrix_handle.invoke(rmatrixPtr);
@@ -146,6 +151,8 @@ public class RMatrixFFM {
             free_RMatrix_handle.invoke(lPtr);
             free_RMatrix_handle.invoke(dPtr);
             free_RMatrix_handle.invoke(uPtr);
+
+            freeHandle.invoke(factor);
 
             return factorization;
         }
