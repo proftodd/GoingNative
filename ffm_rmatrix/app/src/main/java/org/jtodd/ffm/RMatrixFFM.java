@@ -78,8 +78,8 @@ public class RMatrixFFM {
     }
 
     private static JRashunalMatrix allocateJRashunalMatrix(Arena arena, Linker linker, SymbolLookup lookup, MemorySegment mPtr) throws Throwable {
-        var numeratorHandle = RMatrixFFM.RASHUNAL_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("numerator"));
-        var denominatorHandle = RMatrixFFM.RASHUNAL_LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("denominator"));
+        long numeratorOffset = RMatrixFFM.RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
+        long denominatorOffset = RMatrixFFM.RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
 
         var RMatrix_height_handle = linker.downcallHandle(find.apply(lookup, "RMatrix_height"),
             FunctionDescriptor.of(JAVA_LONG, ADDRESS));
@@ -99,8 +99,8 @@ public class RMatrixFFM {
             for (long j = 1; j <= width; ++j) {
                 MemorySegment elementZero = (MemorySegment) RMatrix_get_handle.invoke(mPtr, i, j);
                 MemorySegment element = elementZero.reinterpret(RMatrixFFM.RASHUNAL_LAYOUT.byteSize(), arena, null);
-                int numerator = (int) numeratorHandle.get(element, 0L);
-                int denominator = (int) denominatorHandle.get(element, 0L);
+                int numerator = element.get(JAVA_INT, numeratorOffset);
+                int denominator = element.get(JAVA_INT, denominatorOffset);
                 data[Math.toIntExact((i - 1) * width + (j - 1))] = new JRashunal(numerator, denominator);
             }
         }
