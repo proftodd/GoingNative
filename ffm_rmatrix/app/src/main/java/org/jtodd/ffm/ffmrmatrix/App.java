@@ -3,22 +3,19 @@
  */
 package org.jtodd.ffm.ffmrmatrix;
 
-import java.lang.foreign.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
-import static java.lang.foreign.ValueLayout.*;
-
+import org.jtodd.ffm.JGaussFactorization;
+import org.jtodd.ffm.JRashunalMatrix;
 import org.jtodd.ffm.RMatrixFFM;
 
 public class App {
     public static void main(String[] args) {
-        int data[][][];
-        int demoData[][][] = {
+        int [][][] data;
+        int [][][] demoData = {
             { { 1    }, { 2 }, { 3, 2 }, },
             { { 4, 3 }, { 5 }, { 6    }, },
         };
@@ -57,73 +54,30 @@ public class App {
             data = demoData;
         }
 
-        Linker linker = Linker.nativeLinker();
+        JRashunalMatrix m = new JRashunalMatrix(data);
+        System.out.println("Input matrix:");
+        System.out.println(m);
 
-        try (Arena arena = Arena.ofConfined()) {
-            var lookup = RMatrixFFM.openNativeLib(arena);
+        try {
+            JGaussFactorization factorization = RMatrixFFM.factor(data);
 
-            Function<String, MemorySegment> find = (name) -> {
-                Optional<MemorySegment> sym = lookup.find(name);
-                if (sym.isEmpty()) throw new IllegalStateException("Native symbol not found: " + name);
-                return sym.get();
-            };
+            System.out.println();
+            System.out.println("PInverse:");
+            System.out.println(factorization.pInverse);
 
-            var new_RMatrix_handle = linker.downcallHandle(find.apply("new_RMatrix"),
-                    FunctionDescriptor.of(ADDRESS, JAVA_LONG, JAVA_LONG, ADDRESS));
+            System.out.println();
+            System.out.println("Lower:");
+            System.out.println(factorization.lower);
 
-            var RMatrix_height_handle = linker.downcallHandle(find.apply("RMatrix_height"),
-                    FunctionDescriptor.of(JAVA_LONG, ADDRESS));
+            System.out.println();
+            System.out.println("Diagonal:");
+            System.out.println(factorization.diagonal);
 
-            var RMatrix_width_handle = linker.downcallHandle(find.apply("RMatrix_width"),
-                    FunctionDescriptor.of(JAVA_LONG, ADDRESS));
-
-            var RMatrix_gelim_handle = linker.downcallHandle(find.apply("RMatrix_gelim"),
-                    FunctionDescriptor.of(ADDRESS, ADDRESS));
-
-            int height = data.length;
-            int width = data[0].length;
-            int elementCount = height * width;
-
-            MemoryLayout rashunalLayout = RMatrixFFM.RASHUNAL_LAYOUT;
-            long elementSize = rashunalLayout.byteSize();
-            long elementAlign = rashunalLayout.byteAlignment();
-            long totalBytes = elementSize * (long)elementCount;
-            MemorySegment elems = arena.allocate(totalBytes, elementAlign);
-            long numOffset = rashunalLayout.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
-            long denOffset = rashunalLayout.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
-            for (int i = 0; i < elementCount; ++i) {
-                int row = i / width;
-                int col = i % width;
-                int[] element = data[row][col];
-                int numerator = element[0];
-                int denominator = element.length == 1 ? 1 : element[1];
-
-                MemorySegment elementSlice = elems.asSlice(i * elementSize, elementSize);
-
-                elementSlice.set(JAVA_INT, numOffset, numerator);
-                elementSlice.set(JAVA_INT, denOffset, denominator);
-            }
-
-            MemorySegment ptrArray = arena.allocate(ADDRESS.byteSize() * elementCount, ADDRESS.byteAlignment());
-            for (int i = 0; i < elementCount; ++i) {
-                MemorySegment elementAddr = elems.asSlice(i * elementSize, elementSize);
-                ptrArray.setAtIndex(ADDRESS, i, elementAddr);
-            }
-
-            MemorySegment rmatrixPtr = (MemorySegment) new_RMatrix_handle.invoke((long)height, (long)width, ptrArray);
-
-            MemorySegment factorZero = (MemorySegment) RMatrix_gelim_handle.invoke(rmatrixPtr);
-            MemorySegment factor = factorZero.reinterpret(RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteSize(), arena,null);
-
-            long uOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("U"));
-            MemorySegment uPtrZero = factor.get(ADDRESS, uOffset);
-
-            long uHeight = (long)RMatrix_height_handle.invoke(uPtrZero);
-            long uWidth = (long)RMatrix_width_handle.invoke(uPtrZero);
-
-            System.out.println("U matrix: " + uHeight + "x" + uWidth);
+            System.out.println();
+            System.out.println("Upper:");
+            System.out.println(factorization.upper);
         } catch (Throwable t) {
-            t.printStackTrace();
+            System.err.println(t);
         }
     }
 }
