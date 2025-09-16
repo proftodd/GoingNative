@@ -95,13 +95,13 @@ public class RMatrixFFM {
         int elementCount = Math.toIntExact(height * width);
 
         JRashunal[] data = new JRashunal[elementCount];
-        for (long i = 0; i < height; ++i) {
-            for (long j = 0; j < width; ++j) {
+        for (long i = 1; i <= height; ++i) {
+            for (long j = 1; j <= width; ++j) {
                 MemorySegment elementZero = (MemorySegment) RMatrix_get_handle.invoke(mPtr, i, j);
                 MemorySegment element = elementZero.reinterpret(RMatrixFFM.RASHUNAL_LAYOUT.byteSize(), arena, null);
-                int numerator = (int) numeratorHandle.get(element);
-                int denominator = (int) denominatorHandle.get(element);
-                data[Math.toIntExact(i * width + j)] = new JRashunal(numerator, denominator);
+                int numerator = (int) numeratorHandle.get(element, 0L);
+                int denominator = (int) denominatorHandle.get(element, 0L);
+                data[Math.toIntExact((i - 1) * width + (j - 1))] = new JRashunal(numerator, denominator);
             }
         }
 
