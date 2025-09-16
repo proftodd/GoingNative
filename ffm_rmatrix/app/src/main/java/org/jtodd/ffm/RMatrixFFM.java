@@ -117,6 +117,9 @@ public class RMatrixFFM {
             var RMatrix_gelim_handle = linker.downcallHandle(find.apply(lookup, "RMatrix_gelim"),
                 FunctionDescriptor.of(ADDRESS, ADDRESS));
 
+            var free_RMatrix_handle = linker.downcallHandle(find.apply(lookup, "free_RMatrix"),
+                FunctionDescriptor.ofVoid(ADDRESS));
+
             MemorySegment rmatrixPtr = allocateNativeRMatrix(arena, linker, lookup, data);
 
             MemorySegment factorZero = (MemorySegment) RMatrix_gelim_handle.invoke(rmatrixPtr);
@@ -132,12 +135,19 @@ public class RMatrixFFM {
             MemorySegment dPtr = factor.get(ADDRESS, dOffset);
             MemorySegment uPtr = factor.get(ADDRESS, uOffset);
 
-            return new JGaussFactorization(
-                allocateJRashunalMatrix(arena, linker, lookup, piPtr),
-                allocateJRashunalMatrix(arena, linker, lookup, lPtr),
-                allocateJRashunalMatrix(arena, linker, lookup, dPtr),
-                allocateJRashunalMatrix(arena, linker, lookup, uPtr)
-            );
+            JRashunalMatrix pInverse = allocateJRashunalMatrix(arena, linker, lookup, piPtr);
+            JRashunalMatrix lower = allocateJRashunalMatrix(arena, linker, lookup, lPtr);
+            JRashunalMatrix diagonal = allocateJRashunalMatrix(arena, linker, lookup, dPtr);
+            JRashunalMatrix upper = allocateJRashunalMatrix(arena, linker, lookup, uPtr);
+            JGaussFactorization factorization = new JGaussFactorization(pInverse, lower, diagonal, upper);
+
+            free_RMatrix_handle.invoke(rmatrixPtr);
+            free_RMatrix_handle.invoke(piPtr);
+            free_RMatrix_handle.invoke(lPtr);
+            free_RMatrix_handle.invoke(dPtr);
+            free_RMatrix_handle.invoke(uPtr);
+
+            return factorization;
         }
     }
 }
