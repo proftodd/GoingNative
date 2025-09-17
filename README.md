@@ -5,3 +5,4 @@ Family of projects demonstrating how to call native code from other languages. E
 
 Each demonstration is in a separate folder and separate project. The ones I've done are:
 - [JNI](JNI.md) (Java and Gradle)
+- [FFM](FFM.md) (Java and Gradle)
