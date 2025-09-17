@@ -115,7 +115,7 @@ public class RMatrixFFM {
 
         try (Arena arena = Arena.ofConfined()) {
             var lookup = RMatrixFFM.openNativeLib(arena);
-            var clib = SymbolLookup.libraryLookup("libc.so.6", arena);
+            var clib = linker.defaultLookup();
 
             var RMatrix_gelim_handle = linker.downcallHandle(find.apply(lookup, "RMatrix_gelim"),
                 FunctionDescriptor.of(ADDRESS, ADDRESS));
