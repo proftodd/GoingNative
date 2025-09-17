@@ -49,13 +49,12 @@ public class RMatrixFFM {
         int width = data[0].length;
         int elementCount = height * width;
 
-        MemoryLayout rashunalLayout = RMatrixFFM.RASHUNAL_LAYOUT;
-        long elementSize = rashunalLayout.byteSize();
-        long elementAlign = rashunalLayout.byteAlignment();
+        long elementSize = RASHUNAL_LAYOUT.byteSize();
+        long elementAlign = RASHUNAL_LAYOUT.byteAlignment();
         long totalBytes = elementSize * (long)elementCount;
         MemorySegment elems = arena.allocate(totalBytes, elementAlign);
-        long numOffset = rashunalLayout.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
-        long denOffset = rashunalLayout.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
+        long numOffset = RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
+        long denOffset = RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
         for (int i = 0; i < elementCount; ++i) {
             int row = i / width;
             int col = i % width;
@@ -79,8 +78,8 @@ public class RMatrixFFM {
     }
 
     private static JRashunalMatrix allocateJRashunalMatrix(Arena arena, Linker linker, SymbolLookup lookup, MethodHandle freeHandle, MemorySegment mPtr) throws Throwable {
-        long numeratorOffset = RMatrixFFM.RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
-        long denominatorOffset = RMatrixFFM.RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
+        long numeratorOffset = RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("numerator"));
+        long denominatorOffset = RASHUNAL_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("denominator"));
 
         var RMatrix_height_handle = linker.downcallHandle(find.apply(lookup, "RMatrix_height"),
             FunctionDescriptor.of(JAVA_LONG, ADDRESS));
@@ -99,7 +98,7 @@ public class RMatrixFFM {
         for (long i = 1; i <= height; ++i) {
             for (long j = 1; j <= width; ++j) {
                 MemorySegment elementZero = (MemorySegment) RMatrix_get_handle.invoke(mPtr, i, j);
-                MemorySegment element = elementZero.reinterpret(RMatrixFFM.RASHUNAL_LAYOUT.byteSize(), arena, null);
+                MemorySegment element = elementZero.reinterpret(RASHUNAL_LAYOUT.byteSize(), arena, null);
                 int numerator = element.get(JAVA_INT, numeratorOffset);
                 int denominator = element.get(JAVA_INT, denominatorOffset);
                 data[Math.toIntExact((i - 1) * width + (j - 1))] = new JRashunal(numerator, denominator);
@@ -114,7 +113,7 @@ public class RMatrixFFM {
         Linker linker = Linker.nativeLinker();
 
         try (Arena arena = Arena.ofConfined()) {
-            var lookup = RMatrixFFM.openNativeLib(arena);
+            var lookup = openNativeLib(arena);
             var clib = linker.defaultLookup();
 
             var RMatrix_gelim_handle = linker.downcallHandle(find.apply(lookup, "RMatrix_gelim"),
@@ -128,12 +127,12 @@ public class RMatrixFFM {
             MemorySegment rmatrixPtr = allocateNativeRMatrix(arena, linker, lookup, data);
 
             MemorySegment factorZero = (MemorySegment) RMatrix_gelim_handle.invoke(rmatrixPtr);
-            MemorySegment factor = factorZero.reinterpret(RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteSize(), arena, null);
+            MemorySegment factor = factorZero.reinterpret(GAUSS_FACTORIZATION_LAYOUT.byteSize(), arena, null);
 
-            long piOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("PI"));
-            long lOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("L"));
-            long dOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("D"));
-            long uOffset = RMatrixFFM.GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("U"));
+            long piOffset = GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("PI"));
+            long lOffset = GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("L"));
+            long dOffset = GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("D"));
+            long uOffset = GAUSS_FACTORIZATION_LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("U"));
 
             MemorySegment piPtr = factor.get(ADDRESS, piOffset);
             MemorySegment lPtr = factor.get(ADDRESS, lOffset);
