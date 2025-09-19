@@ -15,7 +15,7 @@ public static partial class CsRMatrixNativeAdapter
     [LibraryImport("rashunal", EntryPoint = "n_Rashunal")]
     private static partial IntPtr n_Rashunal(int numerator, int denominator);
 
-    public static CsGaussFactorization Factor(int[][][] data)
+    public static CsGaussFactorization Factor(Model.CsRMatrix m)
     {
         IntPtr rPtr = n_Rashunal(1, 2);
         Rashunal r = Marshal.PtrToStructure<Rashunal>(rPtr);
