@@ -21,18 +21,24 @@ internal abstract class NativeHandle : SafeHandle
 
 internal sealed class RashunalHandle : NativeHandle
 {
+    internal RashunalHandle() : base() { }
+
     internal RashunalHandle(IntPtr existing, bool ownsHandle)
         : base(existing, ownsHandle) { }
 }
 
 internal sealed class RMatrixHandle : NativeHandle
 {
+    internal RMatrixHandle() : base() { }
+
     internal RMatrixHandle(IntPtr existing, bool ownsHandle)
         : base(existing, ownsHandle) { }
 }
 
 internal sealed class GaussFactorizationHandle : NativeHandle
 {
+    internal GaussFactorizationHandle() : base() { }
+
     internal GaussFactorizationHandle(IntPtr existing, bool ownsHandle)
         : base(existing, ownsHandle) { }
 }
