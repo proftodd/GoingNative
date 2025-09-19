@@ -57,14 +57,14 @@ public static partial class CsRMatrixNativeAdapter
             for (int i = 0; i < elementCount; ++i)
             {
                 var element = m.Data[i];
-                var elementPtr = AllocRashunal(element.Numerator, element.Denominator);
-                pArray[i] = elementPtr.DangerousGetHandle();
+                var elementHandle = AllocRashunal(element.Numerator, element.Denominator);
+                pArray[i] = elementHandle.DangerousGetHandle();
             }
-            var rMatrixPtr = new_RMatrix(m.Height, m.Width, elementArray);
+            var rMatrixHandle = new_RMatrix(m.Height, m.Width, elementArray);
 
             NativeStdLib.Free(elementArray);
 
-            return rMatrixPtr;
+            return rMatrixHandle;
         }
     }
 
