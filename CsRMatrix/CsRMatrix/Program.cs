@@ -38,7 +38,7 @@ CsRMatrix.Model.CsRMatrix m = new() { Height = data.Length, Width = data[0].Leng
 Console.WriteLine("Starting Matrix:");
 Console.WriteLine(m.ToString());
 
-var f = CsRMatrixNativeAdapter.Factor(data);
+var f = CsRMatrixNativeAdapter.Factor(m);
 Console.WriteLine();
 Console.WriteLine("PInverse:");
 Console.WriteLine(f.PInverse.ToString());

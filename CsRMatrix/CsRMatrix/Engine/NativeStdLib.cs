@@ -26,4 +26,7 @@ public static partial class NativeStdLib
 
     [LibraryImport("c", EntryPoint = "free")]
     internal static partial void Free(IntPtr ptr);
+
+    [LibraryImport("c", EntryPoint = "malloc")]
+    internal static partial IntPtr Malloc(UIntPtr size);
 }
