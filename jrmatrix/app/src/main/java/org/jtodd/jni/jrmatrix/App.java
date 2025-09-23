@@ -5,8 +5,7 @@ package org.jtodd.jni.jrmatrix;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 import org.jtodd.jni.JRashunalMatrix;
 import org.jtodd.jni.RMatrixJNI;
@@ -15,39 +14,20 @@ public class App {
     public static void main(String[] args) throws Exception {
         RMatrixJNI rmj = new RMatrixJNI();
 
-        int data[][][];
+        int [][][] data;
         if (args.length > 0) {
-            List<String> lines = Files.readAllLines(Paths.get(args[0]));
-            ArrayList<int[][]> fileData = new ArrayList<int[][]>();
-            for (int i = 0; i < lines.size(); ++i) {
-                String line = lines.get(i);
-                String[] elements = line.split("(?<!^)[ ]+");
-                int[][] lineData = new int[elements.length][];
-                for (int j = 0; j < lineData.length; ++j) {
-                    String[] elementParts = elements[j].split("/");
-                    int[] fractionParts;
-                    if (elementParts.length == 1) {
-                        fractionParts = new int[] { Integer.parseInt(elementParts[0].trim()) };
-                    } else {
-                        fractionParts = new int[] {
-                            Integer.parseInt(elementParts[0].trim()),
-                            Integer.parseInt(elementParts[1].trim()),
-                        };
-                    }
-                    lineData[j] = fractionParts;
-                }
-                fileData.add(lineData);
-            }
-            data = new int[fileData.size()][][];
-            for (int i = 0; i < data.length; ++i) {
-                data[i] = fileData.get(i);
-            }
+            data = Files.readAllLines(Paths.get(args[0])).stream()
+                    .map(l -> l.split("(?<!^)[ ]+"))
+                    .map(ea -> Arrays.stream(ea).map(e ->
+                            Arrays.stream(e.split("/")).map(
+                                    f -> Integer.parseInt(f.trim())).mapToInt(Integer::intValue).toArray()
+                        ).toArray(int[][]::new)
+                    ).toArray(int[][][]::new);
         } else {
-            int demoData[][][] = {
+            data = new int[][][] {
                 { { 1    }, { 2 }, { 3, 2 }, },
                 { { 4, 3 }, { 5 }, { 6    }, },
             };
-            data = demoData;
         }
         JRashunalMatrix u = rmj.factorMatrix(data);
         System.out.println(u);

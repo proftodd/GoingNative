@@ -24,8 +24,8 @@ library {
         def os = org.gradle.internal.os.OperatingSystem.current()
         if (os.isWindows()) {
             compileTask.includes.from("$jvmHome/include/win32")
-            compileTask.includes.from(file("C:/headers/rashunal/include"))
-            compileTask.includes.from(file("C:/headers/rmatrix/include"))
+            compileTask.includes.from(file("C:/Users/john.todd/local/rashunal/include"))
+            compileTask.includes.from(file("C:/Users/john.todd/local/rmatrix/include"))
             compileTask.compilerArgs.add("/TC")
         } else if (os.isLinux()) {
             compileTask.includes.from(file("$jvmHome/include/linux"))
@@ -50,8 +50,8 @@ library {
             ])
         } else if (toolChain instanceof VisualCpp) {
             linkTask.linkerArgs.addAll([
-                "C:/libs/rashunal.lib",
-                "C:/libs/rmatrix.lib"
+                "C:/Users/john.todd/local/rashunal/lib/rashunal.lib",
+                "C:/Users/john.todd/local/rmatrix/lib/rmatrix.lib"
             ])
         }
     }
