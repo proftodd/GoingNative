@@ -2,8 +2,6 @@ package org.jtodd.ffm;
 
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -22,17 +20,20 @@ public class RMatrixFFM {
         ADDRESS.withName("U")
     );
 
-    public static SymbolLookup openNativeLib(Arena arena) {
-        String libString = System.getenv("RMATRIX_LIB");
-        if (libString == null || libString.isBlank()) {
-            throw new IllegalStateException("Environment variable RMATRIX_LIB needed to load native libraries");
+    public static SymbolLookup openNativeLib(String library, Arena arena) throws IllegalStateException {
+        String osSpecificLibrary;
+        String osName = System.getProperty("os.name");
+
+        if (osName.contains("Linux")) {
+            osSpecificLibrary = "lib" + library + ".so";
+        } else if (osName.contains("Mac OS")) {
+            osSpecificLibrary = "lib" + library + ".dylib";
+        } else if (osName.contains("Windows")) {
+            osSpecificLibrary = library + ".dll";
+        } else {
+            throw new IllegalStateException("Unsupported OS: " + osName);
         }
-        Path libPath = Path.of(libString);
-        if (!Files.isRegularFile(libPath)) {
-            throw new IllegalArgumentException("Library file not found: " + libPath);
-        }
-        System.out.println("Loading native library: " + libPath.toAbsolutePath());
-        return SymbolLookup.libraryLookup(libPath, arena);
+        return SymbolLookup.libraryLookup(osSpecificLibrary, arena);
     }
 
     private static final BiFunction<SymbolLookup, String, MemorySegment> find = (lookup, name) -> {
@@ -113,7 +114,7 @@ public class RMatrixFFM {
         Linker linker = Linker.nativeLinker();
 
         try (Arena arena = Arena.ofConfined()) {
-            var lookup = openNativeLib(arena);
+            var lookup = openNativeLib("rmatrix", arena);
             var clib = linker.defaultLookup();
 
             var RMatrix_gelim_handle = linker.downcallHandle(find.apply(lookup, "RMatrix_gelim"),
