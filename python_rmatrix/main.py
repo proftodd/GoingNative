@@ -13,7 +13,7 @@ else:
     print(f"using data from file {sys.argv[1]}")
     with open(sys.argv[1], 'r') as my_file:
         data = [
-            [el.split('/') for el in line.split()]
+            [list(map(int, el.split('/'))) for el in line.split()]
             for line in my_file
         ]
 
