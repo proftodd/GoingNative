@@ -11,25 +11,41 @@ import org.jtodd.jni.JRashunalMatrix;
 import org.jtodd.jni.RMatrixJNI;
 
 public class App {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         RMatrixJNI rmj = new RMatrixJNI();
 
         int [][][] data;
-        if (args.length > 0) {
-            data = Files.readAllLines(Paths.get(args[0])).stream()
-                    .map(l -> l.split("(?<!^)[ ]+"))
-                    .map(ea -> Arrays.stream(ea).map(e ->
-                            Arrays.stream(e.split("/")).map(
-                                    f -> Integer.parseInt(f.trim())).mapToInt(Integer::intValue).toArray()
-                        ).toArray(int[][]::new)
-                    ).toArray(int[][][]::new);
-        } else {
-            data = new int[][][] {
+        int [][][] demoData = {
                 { { 1    }, { 2 }, { 3, 2 }, },
                 { { 4, 3 }, { 5 }, { 6    }, },
-            };
+        };
+
+        try {
+            if (args.length > 0) {
+                data = Files.readAllLines(Paths.get(args[0])).stream()
+                        .map(l -> l.split("(?<!^)[ ]+"))
+                        .map(ea -> Arrays.stream(ea).map(e ->
+                                        Arrays.stream(e.split("/")).map(
+                                                f -> Integer.parseInt(f.trim())).mapToInt(Integer::intValue).toArray()
+                                ).toArray(int[][]::new)
+                        ).toArray(int[][][]::new);
+            } else {
+                data = demoData;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            data = demoData;
         }
-        JRashunalMatrix u = rmj.factorMatrix(data);
-        System.out.println(u);
+
+        JRashunalMatrix m = new JRashunalMatrix(data);
+        System.out.println("Input matrix:");
+        System.out.println(m);
+
+        try {
+            JRashunalMatrix u = rmj.factorMatrix(data);
+            System.out.println(u);
+        } catch (Throwable t) {
+            System.err.println(t);
+        }
     }
 }
