@@ -19,11 +19,11 @@ _std_lib = ctypes.CDLL('ucrtbase.dll')
 _std_lib.free.argtypes = (ctypes.c_void_p,)
 _std_lib.malloc.argtypes = (ctypes.c_size_t,)
 
-_rashunal_lib = ctypes.CDLL('/Users/john.todd/local/rashunal/bin/rashunal.dll')
+_rashunal_lib = ctypes.CDLL('rashunal.dll')
 _rashunal_lib.n_Rashunal.argtypes = (ctypes.c_int, ctypes.c_int)
 _rashunal_lib.n_Rashunal.restype = ctypes.POINTER(RASHUNAL)
 
-_rmatrix_lib = ctypes.CDLL('/Users/john.todd/local/rmatrix/bin/rmatrix.dll')
+_rmatrix_lib = ctypes.CDLL('rmatrix.dll')
 _rmatrix_lib.new_RMatrix.argtypes = (ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(ctypes.POINTER(RASHUNAL)))
 _rmatrix_lib.new_RMatrix.restype = ctypes.POINTER(RMATRIX)
 
