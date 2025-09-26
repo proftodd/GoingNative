@@ -1,4 +1,6 @@
 import ctypes
+import os
+import sys
 import RMatrix
 
 class RASHUNAL(ctypes.Structure):
@@ -15,15 +17,50 @@ class GAUSS_FACTORIZATION(ctypes.Structure):
         ("UPPER", ctypes.POINTER(RMATRIX))
     ]
 
-_std_lib = ctypes.CDLL('ucrtbase.dll')
+def get_dll_dirs_from_env(env_var="RMATRIX_LIB_DIRS"):
+    val = os.environ.get(env_var, "")
+    if not val:
+        return []
+    return val.split(os.pathsep)
+
+def load_standard_library():
+    if sys.platform.startswith("win"):
+        return ctypes.CDLL('ucrtbase.dll')
+    elif sys.platform.startswith("darwin"):
+        return ctypes.CDLL('libSystem.dylib')
+    else:
+        return ctypes.CDLL('libc.so.6')
+
+def load_library(lib_name):
+    if sys.platform.startswith("win"):
+        dll_dirs = get_dll_dirs_from_env()
+        for d in dll_dirs:
+            if not os.path.isdir(d):
+                continue
+            try:
+                os.add_dll_directory(d)
+            except AttributeError:
+                ctypes.windll.kernel32.SetDllDirectoryW(d)
+        filename = f"{lib_name}.dll"
+    elif sys.platform.startswith("darwin"):
+        filename = f"lib{lib_name}.dylib"
+    else:
+        filename = f"lib{lib_name}.so"
+
+    try:
+        return ctypes.CDLL(filename)
+    except OSError as e:
+        raise OSError(f"Could not load library '{filename}'")
+
+_std_lib = load_standard_library()
 _std_lib.free.argtypes = (ctypes.c_void_p,)
 _std_lib.malloc.argtypes = (ctypes.c_size_t,)
 
-_rashunal_lib = ctypes.CDLL('rashunal.dll')
+_rashunal_lib = load_library('rashunal')
 _rashunal_lib.n_Rashunal.argtypes = (ctypes.c_int, ctypes.c_int)
 _rashunal_lib.n_Rashunal.restype = ctypes.POINTER(RASHUNAL)
 
-_rmatrix_lib = ctypes.CDLL('rmatrix.dll')
+_rmatrix_lib = load_library('rmatrix')
 _rmatrix_lib.new_RMatrix.argtypes = (ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(ctypes.POINTER(RASHUNAL)))
 _rmatrix_lib.new_RMatrix.restype = ctypes.POINTER(RMATRIX)
 
