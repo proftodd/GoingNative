@@ -1,5 +1,6 @@
 from libc.stdlib cimport malloc, free
-cimport crashunal, crmatrix
+cimport crashunal
+cimport crmatrix
 
 cdef class RMatrix:
     cdef crmatrix.RMatrix *_c_rmatrix
