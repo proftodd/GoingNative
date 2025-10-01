@@ -3,14 +3,14 @@ from Cython.Build import cythonize
 
 extensions = [
     Extension(
-        "rashunal.rashunal",
+        "rashunal._rashunal",
         ["rashunal/rashunal.pyx"],
         include_dirs=[],
         libraries=["rashunal"],
         library_dirs=[],
     ),
     Extension(
-        "rmatrix.rmatrix",
+        "rmatrix._rmatrix",
         ["rmatrix/rmatrix.pyx"],
         include_dirs=[],
         libraries=["rmatrix"],

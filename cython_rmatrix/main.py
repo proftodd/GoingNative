@@ -1,19 +1,19 @@
-import RMatrix
-import rashunal.rashunal as crash
-import rmatrix.rmatrix as crm
+import PRMatrix
+from rashunal import Rashunal
+from rmatrix import RMatrix
 
-r = crash.Rashunal(1, 2)
+r = Rashunal(1, 2)
 print(str(r))
 
 data = [
-    RMatrix.PRashunal([1, 1]),
-    RMatrix.PRashunal([2, 1]),
-    RMatrix.PRashunal([3, 2]),
-    RMatrix.PRashunal([4, 3]),
-    RMatrix.PRashunal([5, 1]),
-    RMatrix.PRashunal([6, 1])
+    PRMatrix.PRashunal([1, 1]),
+    PRMatrix.PRashunal([2, 1]),
+    PRMatrix.PRashunal([3, 2]),
+    PRMatrix.PRashunal([4, 3]),
+    PRMatrix.PRashunal([5, 1]),
+    PRMatrix.PRashunal([6, 1])
 ]
-prm = RMatrix.PRMatrix(2, 3, data)
-m = crm.RMatrix(prm)
+prm = PRMatrix.PRMatrix(2, 3, data)
+m = RMatrix(prm)
 print(f"m.height = {m.height}")
 print(f"m.width = {m.width}")
