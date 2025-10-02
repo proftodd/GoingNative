@@ -5,21 +5,23 @@ cimport crmatrix
 cdef class RMatrix:
     cdef crmatrix.RMatrix *_c_rmatrix
 
-    def __init__(self, m):
-        cdef el_count = m.height * m.width
+    def __init__(self, data):
+        cdef height = len(data)
+        cdef width = len(data[0])
+        cdef el_count = height * width
         cdef crashunal.Rashunal **arr = <crashunal.Rashunal**> malloc(el_count * sizeof(crashunal.Rashunal*))
         if arr is NULL:
             raise MemoryError()
 
         try:
             for i in range(el_count):
-                el = m.data[i]
-                num = el.numerator
-                den = el.denominator
+                el = data[i // width][i % width]
+                num = el[0]
+                den = el[1] if len(el) == 2 else 1
                 arr[i] = crashunal.n_Rashunal(num, den)
                 if arr[i] is NULL:
                     raise MemoryError()
-            self._c_rmatrix = crmatrix.new_RMatrix(m.height, m.width, arr)
+            self._c_rmatrix = crmatrix.new_RMatrix(height, width, arr)
             if self._c_rmatrix is NULL:
                 raise MemoryError()
         finally:
