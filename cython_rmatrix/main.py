@@ -1,18 +1,40 @@
+import sys
 from rashunal import Rashunal
 from rmatrix import RMatrix
 
-r = Rashunal(1, 2)
-print(str(r))
+data = []
+if len(sys.argv) == 1:
+    print('using demo data')
+    data = [
+        [[1],    [2], [3, 2]],
+        [[4, 3], [5], [6]]
+    ]
+else:
+    print(f"using data from file {sys.argv[1]}")
+    with open(sys.argv[1], 'r') as my_file:
+        data = [
+            [list(map(int, el.split('/'))) for el in line.split()]
+            for line in my_file
+        ]
 
-data = [
-    [[1], [2], [3, 2]],
-    [[4, 3], [5], [6]]
-]
 m = RMatrix(data)
-print(f"m.height = {m.height}")
-print(f"m.width = {m.width}")
+print("Original matrix:")
+print(data)
+
 (p_inverse, lower, diagonal, upper) = m.factor()
+
+print()
+print("Lower:")
 print(p_inverse)
+
+print()
+print("Lower:")
 print(lower)
+
+print()
+print("Diagonal:")
 print(diagonal)
+
+print()
+print("Upper:")
 print(upper)
