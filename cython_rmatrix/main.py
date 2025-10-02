@@ -5,8 +5,8 @@ r = Rashunal(1, 2)
 print(str(r))
 
 data = [
-    [(1,), (2,), (3, 2)],
-    [(4, 3), (5,), (6,)]
+    [[1], [2], [3, 2]],
+    [[4, 3], [5], [6]]
 ]
 m = RMatrix(data)
 print(f"m.height = {m.height}")
