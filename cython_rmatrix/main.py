@@ -11,3 +11,8 @@ data = [
 m = RMatrix(data)
 print(f"m.height = {m.height}")
 print(f"m.width = {m.width}")
+(p_inverse, lower, diagonal, upper) = m.factor()
+print(p_inverse)
+print(lower)
+print(diagonal)
+print(upper)

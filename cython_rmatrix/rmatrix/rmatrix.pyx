@@ -42,3 +42,35 @@ cdef class RMatrix:
     @property
     def width(self):
         return crmatrix.RMatrix_width(self._c_rmatrix)
+    
+    def factor(self):
+        cdef crmatrix.Gauss_Factorization *f
+        f = crmatrix.RMatrix_gelim(self._c_rmatrix)
+        try:
+            result = (
+                _crmatrix_to_2d_array(f.pi),
+                _crmatrix_to_2d_array(f.l),
+                _crmatrix_to_2d_array(f.d),
+                _crmatrix_to_2d_array(f.u)
+            )
+        finally:
+            if f.pi != NULL: crmatrix.free_RMatrix(<crmatrix.RMatrix *>f.pi)
+            if f.l  != NULL: crmatrix.free_RMatrix(<crmatrix.RMatrix *>f.l)
+            if f.d  != NULL: crmatrix.free_RMatrix(<crmatrix.RMatrix *>f.d)
+            if f.u  != NULL: crmatrix.free_RMatrix(<crmatrix.RMatrix *>f.u)
+            crmatrix.free(f)
+        return result
+
+cdef _crmatrix_to_2d_array(const crmatrix.RMatrix *crm):
+    cdef height = crmatrix.RMatrix_height(crm)
+    cdef width = crmatrix.RMatrix_width(crm)
+    cdef result = []
+    cdef const crashunal.Rashunal *el
+    for i in range(height):
+        row = []
+        for j in range(width):
+            el = crmatrix.RMatrix_get(crm, i + 1, j + 1)
+            row.append((el.numerator, el.denominator))
+            crmatrix.free(<void *>el)
+        result.append(row)
+    return result
