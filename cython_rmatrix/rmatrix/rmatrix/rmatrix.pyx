@@ -5,7 +5,7 @@ cimport crmatrix
 cdef class RMatrix:
     cdef crmatrix.RMatrix *_c_rmatrix
 
-    def __init__(self, data):
+    def __cinit__(self, data):
         cdef height = len(data)
         cdef width = len(data[0])
         cdef el_count = height * width
@@ -58,7 +58,7 @@ cdef class RMatrix:
             if f.l  != NULL: crmatrix.free_RMatrix(<crmatrix.RMatrix *>f.l)
             if f.d  != NULL: crmatrix.free_RMatrix(<crmatrix.RMatrix *>f.d)
             if f.u  != NULL: crmatrix.free_RMatrix(<crmatrix.RMatrix *>f.u)
-            crmatrix.free(f)
+            free(f)
         return result
 
 cdef _crmatrix_to_2d_array(const crmatrix.RMatrix *crm):
@@ -71,6 +71,6 @@ cdef _crmatrix_to_2d_array(const crmatrix.RMatrix *crm):
         for j in range(width):
             el = crmatrix.RMatrix_get(crm, i + 1, j + 1)
             row.append((el.numerator, el.denominator))
-            crmatrix.free(<void *>el)
+            crashunal.free(<void *>el)
         result.append(row)
     return result

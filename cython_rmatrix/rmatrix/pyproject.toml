@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "Cython"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rmatrix"
+version = "0.1.0"
+description = "Python bindings for the RMatrix C library"
+authors = [{ name = "John Todd" }]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["rashunal>=0.1.0"]

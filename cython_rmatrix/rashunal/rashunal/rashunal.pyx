@@ -1,3 +1,4 @@
+from libc.stdlib cimport free
 cimport crashunal
 
 cdef class Rashunal:
@@ -10,7 +11,7 @@ cdef class Rashunal:
     
     def __dealloc__(self):
         if self._c_rashunal is not NULL:
-            crashunal.free(self._c_rashunal)
+            free(self._c_rashunal)
             self._c_rashunal = NULL
     
     def __str__(self):

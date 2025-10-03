@@ -16,7 +16,3 @@ cdef extern from "rmatrix.h":
         const RMatrix *l
         const RMatrix *d
         const RMatrix *u
-
-cdef extern from "stdlib.h":
-    void free(void *ptr)
-    void *malloc(size_t)
