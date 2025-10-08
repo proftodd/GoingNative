@@ -1,0 +1,2 @@
+include rmatrix/*.pxd
+include rmatrix/*.pyx
