@@ -66,12 +66,14 @@ public class RMatrix: CustomStringConvertible {
 
     public func factor() -> GaussFactorization {
         let gf = RMatrix_gelim(_rmatrix)!
-        return GaussFactorization(
+        let sgf = GaussFactorization(
             PInverse: RMatrix(gf.pointee.pi),
             Lower: RMatrix(gf.pointee.l),
             Diagonal: RMatrix(gf.pointee.d),
             Upper: RMatrix(gf.pointee.u)
         )
+        free(gf)
+        return sgf
     }
 
     public var description: String {
