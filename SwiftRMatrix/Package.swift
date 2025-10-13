@@ -29,15 +29,16 @@ let package = Package(
         ),
         .target(
             name: "Model",
-            dependencies: [],
+            dependencies: [
+                "CRashunal",
+                "CRMatrix",
+            ],
             path: "Sources/Model",
         ),
         .executableTarget(
             name: "SwiftRMatrix",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                "CRashunal",
-                "CRMatrix",
                 "Model",
             ],
             path: "Sources/SwiftRMatrix"
