@@ -2,6 +2,8 @@
 // https://docs.swift.org/swift-book
 import ArgumentParser
 import Foundation
+import CRashunal
+import CRMatrix
 import Model
 
 enum SwiftRMatrixError: Error {
@@ -64,5 +66,16 @@ struct SwiftRMatrix: ParsableCommand {
         }
         let m3 = Model.RMatrix(data)
         print(m3)
+
+        let one_half_cr: UnsafeMutablePointer<CRashunal.Rashunal> = n_Rashunal(1, 2)!
+        print("{\(one_half_cr.pointee.numerator),\(one_half_cr.pointee.denominator)}")
+
+        let one_cr: UnsafeMutablePointer<CRashunal.Rashunal> = ni_Rashunal(1)!
+        print("{\(one_cr.pointee.numerator),\(one_cr.pointee.denominator)}")
+
+        let crm: OpaquePointer = new_RMatrix(1, 2, [one_half_cr, one_cr])
+        print("OpaquePointer: height = \(RMatrix_height(crm)), width = \(RMatrix_width(crm))")
+
+        let cgh: UnsafeMutablePointer<CRMatrix.Gauss_Factorization> = RMatrix_gelim(crm)
     }
 }

@@ -1,0 +1,4 @@
+module CRMatrix [system] {
+    umbrella header "rmatrix.h"
+    link "rmatrix"
+}

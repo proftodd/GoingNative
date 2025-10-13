@@ -1,0 +1,4 @@
+module CRashunal [system] {
+    umbrella header "rashunal.h"
+    link "rashunal"
+}

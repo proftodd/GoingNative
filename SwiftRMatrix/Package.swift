@@ -11,6 +11,22 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
+        .systemLibrary(
+            name: "CRashunal",
+            pkgConfig: "rashunal",
+            providers: [
+                .apt(["rashunal"]),
+                .brew(["rashunal"]),
+            ],
+        ),
+        .systemLibrary(
+            name: "CRMatrix",
+            pkgConfig: "rmatrix",
+            providers: [
+                .apt(["rmatrix"]),
+                .brew(["rmatrix"]),
+            ],
+        ),
         .target(
             name: "Model",
             dependencies: [],
@@ -20,6 +36,8 @@ let package = Package(
             name: "SwiftRMatrix",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                "CRashunal",
+                "CRMatrix",
                 "Model",
             ],
             path: "Sources/SwiftRMatrix"
