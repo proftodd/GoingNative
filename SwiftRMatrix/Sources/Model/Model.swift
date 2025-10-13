@@ -10,16 +10,12 @@ import CRMatrix
 public class Rashunal: CustomStringConvertible {
     var _rashunal: UnsafePointer<CRashunal.Rashunal>
 
-    fileprivate init(_ rashunal: UnsafePointer<CRashunal.Rashunal>) {
-        self._rashunal = rashunal
-    }
-
     public init(_ numerator: Int, _ denominator: Int = 1) {
-        _rashunal = UnsafePointer(n_Rashunal(Int32(numerator), Int32(denominator)))
+        _rashunal = UnsafePointer(n_Rashunal(numericCast(numerator), numericCast(denominator)))
     }
 
     public init(_ data: [Int]) {
-        _rashunal = UnsafePointer(n_Rashunal(Int32(data[0]), data.count > 1 ? Int32(data[1]) : 1))
+        _rashunal = UnsafePointer(n_Rashunal(numericCast(data[0]), data.count > 1 ? numericCast(data[1]) : 1))
     }
 
     public var numerator: Int { Int(_rashunal.pointee.numerator) }
@@ -46,12 +42,16 @@ public class RMatrix: CustomStringConvertible {
         let height = data.count
         let width = data.first!.count
 
-        let rashunals: [Rashunal] = data.flatMap { $0.map { Rashunal($0) } }
+        let rashunals = data.flatMap {
+            row in row.map {
+                cell in n_Rashunal(numericCast(cell[0]), data.count > 1 ? numericCast(cell[1]) : 1)
+            }
+        }
 
         let ptrArray = UnsafeMutablePointer<UnsafeMutablePointer<CRashunal.Rashunal>?>.allocate(capacity: rashunals.count)
         defer { ptrArray.deallocate() }
         for i in 0..<rashunals.count {
-            ptrArray[i] = UnsafeMutablePointer(mutating: rashunals[i]._rashunal)
+            ptrArray[i] = UnsafeMutablePointer(mutating: rashunals[i])
         }
 
         let m: OpaquePointer = withExtendedLifetime(rashunals) {
@@ -75,18 +75,14 @@ public class RMatrix: CustomStringConvertible {
     }
 
     public var description: String {
-        var result = ""
-        for i in 1...height {
-            result += "[ "
-            for j in 1...width {
+        (1...height).map { i in
+            "[ " + (1...width).map { j in
                 let cellPtr: UnsafePointer<CRashunal.Rashunal> = RMatrix_get(_rmatrix, i, j)
-                result += "{\(cellPtr.pointee.numerator),\(cellPtr.pointee.denominator)}"
-                result += " "
+                let rep = "{\(cellPtr.pointee.numerator),\(cellPtr.pointee.denominator)}"
                 free(UnsafeMutablePointer<CRashunal.Rashunal>(mutating: cellPtr))
-            }
-            result += "]\n"
-        }
-        return result
+                return rep
+            }.joined(separator: " ") + " ]"
+        }.joined(separator: "\n")
     }
 
     deinit {
