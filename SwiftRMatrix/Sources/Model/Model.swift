@@ -1,8 +1,12 @@
 import Foundation
 #if os(Linux)
 import Glibc
-#else
+#elseif os(Windows)
+
+#elseif os(macOS)
 import Darwin
+#else
+#error("Unsupported platform")
 #endif
 import CRashunal
 import CRMatrix
@@ -44,7 +48,7 @@ public class RMatrix: CustomStringConvertible {
 
         let rashunals = data.flatMap {
             row in row.map {
-                cell in n_Rashunal(numericCast(cell[0]), data.count > 1 ? numericCast(cell[1]) : 1)
+                cell in n_Rashunal(numericCast(cell[0]), cell.count > 1 ? numericCast(cell[1]) : 1)
             }
         }
 
