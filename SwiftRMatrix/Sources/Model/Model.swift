@@ -51,17 +51,16 @@ public class RMatrix: CustomStringConvertible {
                 cell in n_Rashunal(numericCast(cell[0]), cell.count > 1 ? numericCast(cell[1]) : 1)
             }
         }
-
         let ptrArray = UnsafeMutablePointer<UnsafeMutablePointer<CRashunal.Rashunal>?>.allocate(capacity: rashunals.count)
-        defer { ptrArray.deallocate() }
         for i in 0..<rashunals.count {
-            ptrArray[i] = UnsafeMutablePointer(mutating: rashunals[i])
+            ptrArray[i] = rashunals[i]
+        }
+        defer {
+            rashunals.forEach { free($0) }
+            ptrArray.deallocate()
         }
 
-        let m: OpaquePointer = withExtendedLifetime(rashunals) {
-            new_RMatrix(numericCast(height), numericCast(width), ptrArray)
-        }
-        _rmatrix = m
+        _rmatrix = new_RMatrix(numericCast(height), numericCast(width), ptrArray)
     }
 
     public var height: Int { Int(RMatrix_height(_rmatrix)) }
